@@ -1,3 +1,4 @@
+#include <corecrt_search.h>
 #define __STDC_WANT_LIB_EXT1__ 1
 #define _GNU_SOURCE
 #include <corecrt.h>
@@ -63,6 +64,41 @@ int main(int argc, char **argv) {
 
   // Print only if successful
   printf("Read %ld bytes:\n%s\n", fsize, code);
+
+  // after adding buffer.c contents to code now to compile the code we need to
+  // write it back to a temp.c
+  FILE *temp;
+  errno_t temp_file_error;
+  temp_file_error = fopen_s(&temp, "temp.c", "w");
+  if (temp_file_error != 0) {
+    perror("error writing temp.c");
+    exit(1);
+  }
+
+  // write the code which was allocated in temp.c
+  fprintf(temp, "%s", code);
+  fclose(temp);
+
+  // now compile using popen
+  FILE *compile_test_c;
+
+  // 2>&1 means right pipe fd 2(stderr) to 1 (stdout)[ stdout useful for cli
+  // output] :)
+  compile_test_c = _popen("gcc -Wall -c temp.c 2>&1", "r");
+  if (compile_test_c == NULL) {
+    perror("_popen error");
+    remove("temp.c");
+    exit(1);
+  }
+
+  char errbuf[1024] = {0};
+  printf("GCC ERRORS WHICH WHERE CAPTURED: \n");
+  while (fgets(errbuf, sizeof(errbuf), compile_test_c) != NULL) {
+    printf("%s", errbuf);
+  }
+  _pclose(compile_test_c);
+  remove("temp.c");
+
   free(code); // Safe now
   return 0;
 }

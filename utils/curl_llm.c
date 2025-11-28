@@ -1,4 +1,5 @@
 #include "../curl/curl.h"
+#include "env_parser.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -12,12 +13,12 @@ int main(void) {
     return (int)res;
   }
 
+  char *webhook = parsed_variable(".env", "WEB_HOOK");
+
   curl = curl_easy_init();
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
   if (curl) {
-    curl_easy_setopt(
-        curl, CURLOPT_URL,
-        "https://webhook.site/20974557-5521-4b2e-91e1-7bb3257f0f4d");
+    curl_easy_setopt(curl, CURLOPT_URL, webhook);
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS,
                      postthis); /* if we do not provide POSTFIELDSIZE, libcurl
                                    calls strlen() by itself */

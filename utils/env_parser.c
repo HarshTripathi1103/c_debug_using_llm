@@ -20,7 +20,7 @@ char *parsed_variable(const char *file_name, char *l_value) {
   while (fgets(buffer, MAX_LINE_LENGTH, fp) != NULL) {
 
     // remove the trailing char \n by assiging \0 (0) to them
-    buffer[strcspn(buffer, "\n")] = 0;
+    buffer[strcspn(buffer, "\r\n")] = 0;
 
     // find '='
     char *equal_ptr = strchr(buffer, '=');

@@ -13,7 +13,10 @@ size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp) {
 }
 
 int main(void) {
-  static const char *postthis = "hello world";
+  static const char *postthis = "{\
+    \"model\": \"openai/gpt-oss-20b\", \
+    \"input\": \"Explain the importance of fast language models\" \
+  }";
 
   CURL *curl;
 
@@ -22,7 +25,6 @@ int main(void) {
     return (int)res;
   }
 
-  char *webhook = parsed_variable(".env", "WEB_HOOK");
   char *post_url = parsed_variable(".env", "GROQ_LINK");
   char *groq_api = parsed_variable(".env", "GROQ_API");
 
@@ -33,6 +35,12 @@ int main(void) {
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
   if (curl) {
     curl_easy_setopt(curl, CURLOPT_URL, post_url);
+
+    // set the callback func to handle writing the server response
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+
+    // tell curl to write data on stdout i.e. the terminal using the callback
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, stdout);
 
     // bearer token is passed as vairalbe
     // so using sprintf and buffer
@@ -46,6 +54,7 @@ int main(void) {
     list = curl_slist_append(list, buffer_length);
 
     list = curl_slist_append(list, "Content-Type: application/json");
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS,
                      postthis); /* if we do not provide POSTFIELDSIZE, libcurl

@@ -2,14 +2,59 @@
 #include "env_parser.h"
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+// define a struct to store the full growing response
+typedef struct memory {
+  char *response; // pointer to allocated buffer that will hold merged chunks
+  size_t size;    // number of bytes currently stored in response
+} CallBackStruct;
 
 // as soon as the response is recived
 // libcurl will call this function
-size_t write_callback(void *contents, size_t size, size_t nmemb, void *userp) {
+// This callback function gets called by libcurl as soon as there is data
+// received that needs to be saved. For most transfers, this callback gets
+// called many times and each invoke delivers another chunk of data. ptr points
+// to the delivered data, and the size of that data is nmemb; size is always 1.
 
-  // cast the user data pointer to a FILE pointer(here stdout) :)
-  return fwrite(contents, size, nmemb, (FILE *)userp);
+/*
+ * @params
+ * *data -> New chunk received from network
+ * size -> Size of one element (most 1 FOR HTTP)
+ * refer:-[https://curl.se/libcurl/c/CURLOPT_WRITEFUNCTION.html]
+ * nmemb -> number of elements recived in this chunk (byte count if size=1)
+ * *clientp -> Pointer we passed while setting CURLOPT_WRITEDATA, points to
+ * struct memory
+ * **/
+static size_t cb(char *data, size_t size, size_t nmemb, void *clientp) {
+  size_t realsize = nmemb; // it generally size*nmemb but as size is 1 at each
+                           // iteration so only nmemb
+
+  // to access mem convert the clientp to type memory
+  CallBackStruct *mem = (CallBackStruct *)clientp;
+
+  // expand previous buffer to hold old data +new chunk + null terminator
+  char *ptr = realloc(mem->response, mem->size + realsize + 1);
+
+  if (!ptr) {
+    return 0;
+  }
+
+  // Save the newly allocated memory block into struct for future appends
+  mem->response = ptr;
+
+  // Copy the new chunk and append it exactly after old sotred bytes
+  memcpy(&(mem->response[mem->size]), data, realsize);
+
+  // Update the size counter because we added more bytes
+  mem->size += realsize;
+
+  // add \0 at end so response becomes a valid C string
+  mem->response[mem->size] = 0;
+
+  // return number of bytes so libcurl knows it succeeded
+  return realsize;
 }
 
 int main(void) {
@@ -54,6 +99,7 @@ int main(void) {
     list = curl_slist_append(list, buffer_length);
 
     list = curl_slist_append(list, "Content-Type: application/json");
+
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS,

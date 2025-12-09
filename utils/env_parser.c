@@ -41,7 +41,6 @@ char *parsed_variable(const char *file_name, char *l_value) {
           exit(0);
         }
         strcpy(key_found, value_start);
-        printf("%s \n", key_found);
         break;
       }
     }

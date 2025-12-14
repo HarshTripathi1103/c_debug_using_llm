@@ -1,5 +1,5 @@
 #pragma once
-#include "<curl/curl.h>"
+#include <curl/curl.h>
 #include "env_parser.h"
 #include <stddef.h>
 #include <stdio.h>
